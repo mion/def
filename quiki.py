@@ -27,7 +27,7 @@ class SearchEngine(object):
 					self.db[expr] = [parsed_line]
 
 	def search(self, expr):
-		return self.db[expr]
+		return self.db[expr] if expr in self.db else []
 
 
 class REPL(object):
@@ -50,7 +50,7 @@ class REPL(object):
 
 def display_results(results):
 	for result in results:
-		print '-', result['definition']
+		print '-', result['definition'].strip()
 
 def main():
 	puts = sys.stdout.write
