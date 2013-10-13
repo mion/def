@@ -1,6 +1,10 @@
 # coding: utf-8
 import sys
+import pickle
 import urwid
+import collections
+
+from repl import REPL
 
 
 class SearchEngine(object):
@@ -31,56 +35,36 @@ class SearchEngine(object):
 	def search(self, expr):
 		return self.db[expr] if expr in self.db else []
 
-
-class REPL(object):
-	def __init__(self, input_cb, output_cb):
-		self.input_cb = input_cb
-		self.output_cb = output_cb
-
-	def start(self):
-		print 'REPL starting: type Ctrl+D (EOF) to exit.\n'
-
-		while True:
-			try:
-				input_str = raw_input('> ')
-				out = self.input_cb(input_str)
-				self.output_cb(out)
-			except EOFError:
-				print 'EOF detected. Terminating...\n'
-				return
-
-
-def display_results(results):
+def format_results(results):
 	tab = '  '
 
 	if len(results) == 0:
-		print '\n', tab, 'Sorry, no results :(\n'
-		return
+		return '\n{}{}\n'.format(tab, 'No results.')
 
+	arr = []
 	expr = results[0]['expression']
 	num_results = len(results)
-	print '\n{}"{}" ~ {} results\n'.format(tab, expr, num_results)
+	arr.append('\n{}"{}" ~ {} results\n'.format(tab, expr, num_results))
 	for result in results:
 		defn = result['definition'].strip()
 		sect = result['section'].strip()
-		print '{}({}) {}'.format(tab, sect.lower(), defn)
-	print ''
+		arr.append('{}({}) {}'.format(tab, sect.lower(), defn))
+	arr.append('')
 
-def main_simple():
+	return '\n'.join(arr)
+
+def display_results(results):
+	print format_results(results)
+
+def main_repl(engine):
 	"""
-	Simple 'REPL-like' search.
+	Simple REPL-like search.
 	"""
-	puts = sys.stdout.write
 
-	puts('Loading search engine, please wait... ')
-	engine = SearchEngine()
-	engine.load('TEMP-E20131002.tsv')
-	puts('done.\n')
-
-	repl = REPL(engine.search, display_results)
+	repl = REPL(lambda s: display_results(engine.search(s)))
 	repl.start()
 
-def main_insta():
+def main_insta(engine):
 	"""
 	Instant 'as-you-type' search.
 	"""
@@ -93,8 +77,17 @@ def main_insta():
 	top = urwid.Filler(pile, valign='top')
 
 	def on_ask_change(edit, new_edit_text):
-	    reply.set_text(('I say', u"Please wait...\n")) 
-	    reply.set_text(('I say', u"Nice to meet you, %s" % new_edit_text))
+	    if len(new_edit_text) == 0:
+	    	reply.set_text(('I say', 'Hey! Just start typing to get some answers.'))
+	    	return
+
+	    reply.set_text(('I say', u"Searching...\n")) 
+	    results = engine.search(new_edit_text)
+	    if len(results) > 0:
+	    	reply.set_text(('I say', format_results(results)))
+	    else:
+	    	reply.set_text(('I say', u'No results for "{}"'.format(new_edit_text)))
+
 
 	def on_exit_clicked(button):
 	    raise urwid.ExitMainLoop()
@@ -106,10 +99,22 @@ def main_insta():
 
 
 if __name__ == '__main__':
-	if len(sys.argv) == 2:
-		if sys.argv[1] == 'simple':
-			main_simple()
+	print 'Navi 0.0.1 (alpha ver., released Oct 12 2013)\n'
+
+	if len(sys.argv) == 3:
+		if sys.argv[1] == 'add':
+			print 'Adding database "{}", please wait... '.format(sys.argv[2])
+			SearchEngine.add(sys.argv[2]) #'TEMP-E20131002.tsv'
+			print 'DB added successfully.'
+	elif len(sys.argv) == 2:
+		engine = SearchEngine()
+		engine.load('TEMP-E20131002.tsv')
+
+		if sys.argv[1] == 'repl':
+			main_repl(engine)
 		else:
-			main_insta()
+			main_insta(engine)
+
+		print 'Unloading DB and terminating...'
 	else:
 		print 'Wrong number of arguments!'
