@@ -17,12 +17,15 @@ class SearchEngine(object):
 
 	def parseln(self, line):
 		"""Parse a line from the tsv file."""
-		parts = line.split('\t')
-		# parts[0] is the language, "English"; we don't need it
+		tabs = line.split('\t')
+
+		parsed_defn = mwparser.parse(tabs[3][2:]) # [2:] to remove "# "
+
+		# tabs[0] is the language, "English"; we don't need it
 		result = {
-			'expression': parts[1],
-			'section': parts[2],
-			'definition': parts[3]
+			'expression': tabs[1], #eg: cat
+			'type': tabs[2], #eg: Noun
+			'definition': parsed_defn #eg: "virtual feline of the interwebs"
 		}
 		return result
 
@@ -48,8 +51,8 @@ def format_results(results):
 	arr.append('\n{}"{}" ~ {} results\n'.format(tab, expr, num_results))
 	for result in results:
 		defn = result['definition'].strip()
-		sect = result['section'].strip()
-		arr.append('{}({}) {}'.format(tab, sect.lower(), defn))
+		sect = result['type'].strip()
+		arr.append('{}({}) {}'.format(tab, sect, defn))
 	arr.append('')
 
 	return '\n'.join(arr)
