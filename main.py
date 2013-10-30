@@ -1,18 +1,24 @@
 # coding: utf-8
 import sys
 import pickle
+from collections import defaultdict
+
 import urwid
-import collections
+import mwparserfromhell as mwparser
 
 from repl import REPL
+
+DUMP_FILENAME = 'TEMP-E20131002.tsv'
 
 
 class SearchEngine(object):
 	def __init__(self):
-		self.db = {}
+		self.db = defaultdict(lambda: [])
 
-	def parse_line(self, line):
+	def parseln(self, line):
+		"""Parse a line from the tsv file."""
 		parts = line.split('\t')
+		# parts[0] is the language, "English"; we don't need it
 		result = {
 			'expression': parts[1],
 			'section': parts[2],
@@ -21,19 +27,14 @@ class SearchEngine(object):
 		return result
 
 	def load(self, filename):
-		parseln = self.parse_line
-
 		with open(filename, 'r') as f:
 			for line in f:
-				parsed_line = parseln(line)
+				parsed_line = self.parseln(line)
 				expr = parsed_line['expression']
-				if expr in self.db:
-					self.db[expr].append(parsed_line)
-				else:
-					self.db[expr] = [parsed_line]
+				self.db[expr].append(parsed_line)
 
 	def search(self, expr):
-		return self.db[expr] if expr in self.db else []
+		return self.db[expr]
 
 def format_results(results):
 	tab = '  '
@@ -99,7 +100,7 @@ def main_insta(engine):
 
 
 if __name__ == '__main__':
-	print 'Navi 0.0.1 (alpha ver., released Oct 12 2013)\n'
+	print 'def 0.0.1 (alpha ver., released Oct 12 2013)\n'
 
 	if len(sys.argv) == 3:
 		if sys.argv[1] == 'add':
@@ -108,7 +109,7 @@ if __name__ == '__main__':
 			print 'DB added successfully.'
 	elif len(sys.argv) == 2:
 		engine = SearchEngine()
-		engine.load('TEMP-E20131002.tsv')
+		engine.load(DUMP_FILENAME)
 
 		if sys.argv[1] == 'repl':
 			main_repl(engine)
