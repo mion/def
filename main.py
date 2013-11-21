@@ -19,7 +19,8 @@ class SearchEngine(object):
 		"""Parse a line from the tsv file."""
 		tabs = line.split('\t')
 
-		parsed_defn = mwparser.parse(tabs[3][2:]) # [2:] to remove "# "
+		#parsed_defn = mwparser.parse(tabs[3][2:]) # [2:] to remove "# "
+		parsed_defn = tabs[3]
 
 		# tabs[0] is the language, "English"; we don't need it
 		result = {
@@ -32,9 +33,12 @@ class SearchEngine(object):
 	def load(self, filename):
 		with open(filename, 'r') as f:
 			for line in f:
-				parsed_line = self.parseln(line)
-				expr = parsed_line['expression']
-				self.db[expr].append(parsed_line)
+				try:
+					parsed_line = self.parseln(line)
+					expr = parsed_line['expression']
+					self.db[expr].append(parsed_line)
+				except Exception, e:
+					print '[!] Failed to parse line: "{}"\nReason: {}'.format(line, str(e))
 
 	def search(self, expr):
 		return self.db[expr]
